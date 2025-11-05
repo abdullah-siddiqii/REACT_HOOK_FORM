@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { Edit, Trash2 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
+import Swal from 'sweetalert2';
+
 
 type FormData = {
   name: string;
@@ -42,16 +44,24 @@ export default function Home() {
     setEditingIndex(index);
     toast("You can now edit the selected record.", { icon: "✏️" });
   };
+const handleDelete = (index: number) => {
+  Swal.fire({
+    title: "Are you sure?",
+    text: "This record will be deleted permanently!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Yes, delete it!"
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const updatedData = data.filter((_, i) => i !== index);
+      setData(updatedData);
 
-  const handleDelete = (index: number) => {
-    const updatedData = data.filter((_, i) => i !== index);
-    setData(updatedData);
-    toast.success("Record deleted successfully!");
-    if (editingIndex === index) {
-      reset({ name: "", email: "", age: "" });
-      setEditingIndex(null);
+      Swal.fire("Deleted!", "Your record has been deleted.", "success");
     }
-  };
+  });
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex items-center justify-center px-4 py-10">
@@ -125,7 +135,7 @@ export default function Home() {
               type="submit"
               className={`w-40 text-white cursor-pointer font-semibold px-6 py-2 rounded-lg transition-all duration-300 shadow-md ${
                 editingIndex !== null
-                  ? "bg-yellow-500 hover:bg-yellow-600"
+                  ? "bg-blue-500 hover:bg-blue-600"
                   : "bg-blue-500 hover:bg-blue-600"
               }`}
             >
@@ -140,22 +150,23 @@ export default function Home() {
             <table className="min-w-full text-center">
               <thead className="bg-blue-600 text-white uppercase text-sm tracking-wider">
                 <tr>
-                  <th className="px-6 py-3 border-r text-black">Name</th>
-                  <th className="text-black px-6 py-3 border-r">Email</th>
-                  <th className="text-black px-6 py-3 border-r">Age</th>
-                  <th className="px-6 py-3 text-black">Actions</th>
+                  <th className="px-6 py-3 border-r text-white">Name</th>
+                  <th className="text-white px-6 py-3 border-r">Email</th>
+                  <th className="text-white px-6 py-3 border-r">Age</th>
+                  <th className="px-6 py-3 text-white">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white">
                 {data.map((item, index) => (
-                  <tr key={index} className="border-t hover:bg-blue-50 transition-all">
+                  <tr key={index} className="border-t  transition-all">
                     <td className="px-6 py-3 text-black">{item.name}</td>
                     <td className="px-6 py-3 text-black">{item.email}</td>
                     <td className="px-6 py-3 text-black">{item.age}</td>
                     <td className="px-6 py-3 space-x-2">
+                      <div className="flex justify-center gap-4">
                       <button
                         onClick={() => handleEdit(index)}
-                        className="text-black font-semibold px-3 py-1 rounded-lg hover:bg-yellow-200 transition-all cursor-pointer"
+                        className="text-black font-semibold px-3 py-1 rounded-lg hover:bg-blue-200 transition-all cursor-pointer"
                       >
                         <Edit size={20} color="blue" />
                       </button>
@@ -164,7 +175,7 @@ export default function Home() {
                         className="text-white font-semibold px-3 py-1 rounded-lg hover:bg-red-200 transition-all cursor-pointer"
                       >
                         <Trash2 size={20} color="red" />
-                      </button>
+                      </button></div>
                     </td>
                   </tr>
                 ))}
