@@ -1,65 +1,150 @@
-import Image from "next/image";
+'use client'
+import { useState } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { Edit, Trash2 } from "lucide-react";
+import { toast } from 'react-hot-toast';
+
+
+
+
+type FormData = {
+  name: string;
+  email: string;
+};
 
 export default function Home() {
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>();
+  const [data, setData] = useState<FormData[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  // ✅ Handle form submission
+  const onSubmit: SubmitHandler<FormData> = (formData) => {
+    if (editingIndex !== null) {
+      const updatedData = [...data];
+      updatedData[editingIndex] = formData;
+      setData(updatedData);
+      reset({ name: "", email: "" });
+      setEditingIndex(null);
+      toast.success("Record updated successfully!");
+    } else {
+      setData([...data, formData]);
+      reset({ name: "", email: "" });
+      toast.success("New record added!");
+    }
+  };
+
+  const handleEdit = (index: number) => {
+    const item = data[index];
+    reset(item);
+    setEditingIndex(index);
+    toast("You can now edit the selected record.", { icon: "✏️" });
+  };
+
+  const handleDelete = (index: number) => {
+    const updatedData = data.filter((_, i) => i !== index);
+    setData(updatedData);
+    toast.success("Record deleted successfully!");
+    if (editingIndex === index) {
+      reset({ name: "", email: "" });
+      setEditingIndex(null);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex items-center justify-center px-4 py-10">
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 max-w-3xl w-full">
+        <h1 className="text-3xl font-bold text-center text-blue-700 mb-8 tracking-wide">
+          React Hook Form with Table
+        </h1>
+
+        {/* ✅ FORM */}
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          <div className="flex flex-col">
+            <label className="mb-2 font-semibold text-gray-700">Name</label>
+            <input
+              {...register("name", { required: "Name is required" })}
+              placeholder="Enter full name"
+              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-black"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            {errors.name && (
+              <span className="text-red-500 text-sm mt-1">{errors.name.message}</span>
+            )}
+          </div>
+
+          <div className="flex flex-col">
+            <label className="mb-2 font-semibold text-gray-900">Email</label>
+            <input
+              {...register("email", {
+                required: "Email is required",
+                pattern: { value: /^\S+@\S+$/i, message: "Invalid email" },
+              })}
+              placeholder="example@mail.com"
+              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2  focus:ring-blue-400 transition-all text-black"
+            />
+            {errors.email && (
+              <span className="text-red-500 text-sm mt-1">{errors.email.message}</span>
+            )}
+          </div>
+
+          <div className="md:col-span-2 flex justify-center">
+            <button
+              type="submit"
+              className={`w-40 text-white cursor-pointer font-semibold px-6 py-2 rounded-lg transition-all duration-300 shadow-md ${
+                editingIndex !== null
+                  ? "bg-blue-500 hover:bg-blue-600"
+                  : "bg-blue-500 hover:bg-blue-600"
+              }`}
+            >
+              {editingIndex !== null ? "Update" : "Add"}
+            </button>
+          </div>
+        </form>
+
+        {/* ✅ TABLE */}
+        {data.length > 0 ? (
+          <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
+            <table className="min-w-full text-center">
+              <thead className="bg-blue-600 text-white uppercase text-sm tracking-wider">
+                <tr>
+                  <th className="px-6 py-3 border-r text-black">Name</th>
+                  <th className="text-black px-6 py-3 border-r">Email</th>
+                  <th className="px-6 py-3 text-black">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white">
+                {data.map((item, index) => (
+                  <tr
+                    key={index}
+                    className="border-t hover:bg-blue-50 transition-all"
+                  >
+                    <td className="px-6 py-3 text-black">{item.name}</td>
+                    <td className="px-6 py-3 text-black">{item.email}</td>
+                    <td className="px-6 py-3 space-x-2">
+                      <button
+                        onClick={() => handleEdit(index)}
+                        className=" text-black font-semibold px-3 py-1 rounded-lg hover:bg-yellow-500 transition-all cursor-pointer"
+                      >
+                       <Edit size={20} color="blue"/>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(index)}
+                        className=" text-white font-semibold px-3 py-1 rounded-lg hover:bg-red-600 transition-all cursor-pointer"
+                      >
+                        <Trash2 size={20} color="red"/>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center italic">No records yet. Add some!</p>
+        )}
+      </div>
     </div>
   );
 }
