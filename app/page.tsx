@@ -1,6 +1,26 @@
 'use client'
 import { useState } from "react";
-import { useForm, SubmitHandler, useWatch, Control, FieldErrors } from "react-hook-form";
+import {
+  useForm,
+  SubmitHandler,
+  useWatch,
+  Control,
+  FieldErrors,
+} from "react-hook-form";
+import {
+  TextField,
+  Button,
+  Container,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Box,
+  Stack,
+} from "@mui/material";
 import { Edit, Trash2 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 
@@ -10,49 +30,49 @@ type FormData = {
   age: number | "";
 };
 
-/** Child component: watches the age field using useWatch and shows a custom message when validation fails.
- *  We pass control and errors from parent so this child can read live value and errors.
- */
-function AgeWatcher({ control, errors }: { control: Control<FormData>; errors: FieldErrors<FormData> }) {
-  // useWatch will give us the live value of "age"
+// 👀 Age Watcher Component
+function AgeWatcher({
+  control,
+  errors,
+}: {
+  control: Control<FormData>;
+  errors: FieldErrors<FormData>;
+}) {
   const age = useWatch({ control, name: "age", defaultValue: "" });
 
-  // If there's an error for age, build a friendly message including the entered value
   if (errors.age) {
-    // errors.age.message already has e.g. "Age must be at least 18"
     const baseMessage = (errors.age as any).message || "Invalid age";
-    // show entered value only when it's defined and not empty
     const entered = age === "" || age === undefined ? "no value" : String(age);
-    // If required error, don't append "but you entered ..." unless a value exists
-    if ((errors.age as any).type === "required") {
-      return <span className="text-red-500 text-sm mt-1">{baseMessage}</span>;
-    }
+
     return (
-      <span className="text-red-500 text-sm mt-1">
+      <Typography color="error" variant="body2">
         {baseMessage} {entered !== "no value" ? `but you entered ${entered}` : ""}
-      </span>
+      </Typography>
     );
   }
 
-  // If no error, we DON'T show the live age on the UI (per your earlier request).
-  // But the age is still being tracked by useWatch — so this component silently watches it.
   return null;
 }
 
 export default function Home() {
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors },
+  } = useForm<FormData>({
     defaultValues: { name: "", email: "", age: "" },
   });
 
   const [data, setData] = useState<FormData[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  // Handle submit (add or update)
   const onSubmit: SubmitHandler<FormData> = (formData) => {
     if (editingIndex !== null) {
-      const updatedData = [...data];
-      updatedData[editingIndex] = formData;
-      setData(updatedData);
+      const updated = [...data];
+      updated[editingIndex] = formData;
+      setData(updated);
       reset({ name: "", email: "", age: "" });
       setEditingIndex(null);
       toast.success("Record updated successfully!");
@@ -71,8 +91,8 @@ export default function Home() {
   };
 
   const handleDelete = (index: number) => {
-    const updatedData = data.filter((_, i) => i !== index);
-    setData(updatedData);
+    const updated = data.filter((_, i) => i !== index);
+    setData(updated);
     toast.success("Record deleted successfully!");
     if (editingIndex === index) {
       reset({ name: "", email: "", age: "" });
@@ -80,106 +100,214 @@ export default function Home() {
     }
   };
 
-  // Note: We don't render the live age. The AgeWatcher watches it and only shows errors.
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex items-center justify-center px-4 py-10">
+    <Box
+      sx={{
+        maxHeight: "100vh",
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg, white 0%, rgba(255, 255, 255, 0.8) 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+        py: 6,
+      }}
+    >
       <Toaster position="top-center" reverseOrder={false} />
 
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 max-w-3xl w-full">
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-8 tracking-wide">
-          React Hook Form with Table
-        </h1>
+      <Container maxWidth="md">
+        <Paper
+          elevation={10}
+          sx={{
+            p: 5,
+            borderRadius: 4,
+            backdropFilter: "blur(12px)",
+            backgroundColor: "rgba(255, 255, 255, 0.85)",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+          }}
+        >
+          <Typography
+            variant="h3"
+            align="center"
+            sx={{
+              fontWeight: "bold",
+              mb: 3,
+              color: "black",
+              textShadow: "1px 1px 2px rgba(0,0,0,0.2)",
+            }}
+          >
+            React Hook Form
+          </Typography>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex flex-col">
-            <label className="mb-2 font-semibold text-gray-700">Name</label>
-            <input
+          {/* Form */}
+          <Box
+            component="form"
+            onSubmit={handleSubmit(onSubmit)}
+            sx={{
+              display: "grid",
+              gap: 3,
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            }}
+          >
+            <TextField
+              label="Name"
+              variant="outlined"
+              placeholder="Enter Name here"
               {...register("name", { required: "Name is required" })}
-              placeholder="Enter full name"
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-black"
+              error={!!errors.name}
+              helperText={errors.name?.message}
+                      slotProps={{ inputLabel: { shrink: true } }}
+              fullWidth
             />
-            {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name.message}</span>}
-          </div>
 
-          <div className="flex flex-col">
-            <label className="mb-2 font-semibold text-gray-900">Email</label>
-            <input
+            <TextField
+              label="Email"
+              variant="outlined"
+              placeholder="Enter Email here"
               {...register("email", {
                 required: "Email is required",
                 pattern: { value: /^\S+@\S+$/i, message: "Invalid email" },
               })}
-              placeholder="example@mail.com"
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-black"
-            />
-            {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email.message}</span>}
-          </div>
-
-          {/* Age input + AgeWatcher (child) */}
-          <div className="flex flex-col">
-            <label className="block mb-1 text-gray-700 font-bold">Age:</label>
-            <input
-              type="number"
-              {...register("age", {
-                valueAsNumber: true,
-                required: "Age is required",
-                min: { value: 18, message: "Age must be at least 18" },
-                max: { value: 50, message: "Age must be less than 50" },
-              })}
-              placeholder="Enter your age"
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-black"
+              error={!!errors.email}
+              slotProps={{ inputLabel: { shrink: true } }}
+              helperText={errors.email?.message}
+              fullWidth
             />
 
-            {/* AgeWatcher shows the detailed error message including the entered value */}
-            <AgeWatcher control={control} errors={errors} />
-          </div>
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
+              <TextField
+                type="number"
+                label="Age"
+                placeholder="Enter Age here"
+                variant="outlined"
+                {...register("age", {
+                  valueAsNumber: true,
+                  required: "Age is required",
+                  min: { value: 18, message: "Age must be at least 18" },
+                  max: { value: 50, message: "Age must be less than 50" },
+                })}
+                     slotProps={{ inputLabel: { shrink: true } }}
+                error={!!errors.age}
+              />
+              <AgeWatcher control={control} errors={errors} />
+            </Box>
+<Box sx={{ gridColumn: "1 / -1", display: "flex", justifyContent: "center" }}>
+  <Button
+    type="submit"
+    variant="contained"
+    color={editingIndex !== null ? "warning" : "primary"}
+    sx={{
+      fontWeight: "bold",
+      fontSize: "1rem",
+      py: 1.2,
+      px: 6,
+      width: "30%",
+      background:
+        editingIndex !== null
+          ? "linear-gradient(95deg, #764ba2, #667eea)"
+          : "linear-gradient(95deg,#764ba2, #667eea)",
+    }}
+  >
+    {editingIndex !== null ? "Update" : "Add"}
+  </Button>
+  </Box>
+</Box>
 
-          <div className="md:col-span-2 flex justify-center">
-            <button
-              type="submit"
-              className={`w-40 text-white cursor-pointer font-semibold px-6 py-2 rounded-lg transition-all duration-300 shadow-md ${
-                editingIndex !== null ? "bg-yellow-500 hover:bg-yellow-600" : "bg-blue-500 hover:bg-blue-600"
-              }`}
+
+          {/* Table */}
+          {data.length > 0 ? (
+     <Box
+  sx={{
+    overflowX: "auto",
+    maxHeight: 400,
+    position: "relative", 
+        mt: 4,// sticky ka reference milta hai
+  }}
+>
+  <Table
+    stickyHeader
+    sx={{
+        backgroundColor: "white",
+      borderRadius: 2,
+      boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+      minWidth: 650,
+    }}
+  >
+    <TableHead>
+      <TableRow>
+        {["Name", "Email", "Age", "Actions"].map((head) => (
+          <TableCell
+            key={head}
+            sx={{
+              color: "white",
+              fontWeight: "bold",
+              backgroundColor: "#764ba2", // background zaroori hai sticky ke liye
+              position: "sticky",
+              top: 0,
+              zIndex: 2, // header hamesha upar rahe
+            }}
+          >
+            {head}
+          </TableCell>
+        ))}
+      </TableRow>
+    </TableHead>
+
+    <TableBody>
+      {data.map((item, i) => (
+        <TableRow
+          key={i}
+          sx={{
+            "&:hover": {
+              backgroundColor: "rgba(118, 75, 162, 0.1)",
+              transition: "0.3s",
+            },
+          }}
+        >
+          <TableCell>{item.name}</TableCell>
+          <TableCell>{item.email}</TableCell>
+          <TableCell>{item.age}</TableCell>
+          <TableCell>
+            <Stack direction="row" spacing={1}>
+              <Button
+                onClick={() => handleEdit(i)}
+                startIcon={<Edit size={18} color="blue" />}
+                variant="outlined"
+              >
+                Edit
+              </Button>
+              <Button
+                onClick={() => handleDelete(i)}
+                startIcon={<Trash2 size={18} color="red" />}
+                variant="outlined"
+                color="error"
+              >
+                Delete
+              </Button>
+            </Stack>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</Box>
+
+          ) : (
+            <Typography
+              variant="body1"
+              align="center"
+              sx={{
+                mt: 4,
+                color: "gray",
+                fontStyle: "italic",
+              }}
             >
-              {editingIndex !== null ? "Update" : "Add"}
-            </button>
-          </div>
-        </form>
-
-        {/* TABLE */}
-        {data.length > 0 ? (
-          <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
-            <table className="min-w-full text-center">
-              <thead className="bg-blue-600 text-white uppercase text-sm tracking-wider">
-                <tr>
-                  <th className="px-6 py-3 border-r text-black">Name</th>
-                  <th className="text-black px-6 py-3 border-r">Email</th>
-                  <th className="px-6 py-3 text-black border-r">Age</th>
-                  <th className="px-6 py-3 text-black">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white">
-                {data.map((item, index) => (
-                  <tr key={index} className="border-t hover:bg-blue-50 transition-all">
-                    <td className="px-6 py-3 text-black">{item.name}</td>
-                    <td className="px-6 py-3 text-black">{item.email}</td>
-                    <td className="px-6 py-3 text-black">{item.age}</td>
-                    <td className="px-6 py-3 space-x-2">
-                      <button onClick={() => handleEdit(index)} className="text-black font-semibold px-3 py-1 rounded-lg hover:bg-yellow-200 transition-all cursor-pointer">
-                        <Edit size={20} color="blue" />
-                      </button>
-                      <button onClick={() => handleDelete(index)} className="text-white font-semibold px-3 py-1 rounded-lg hover:bg-red-200 transition-all cursor-pointer">
-                        <Trash2 size={20} color="red" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-gray-500 text-center italic">No records yet. Add some!</p>
-        )}
-      </div>
-    </div>
+              No records yet. Add some!
+            </Typography>
+          )}
+        </Paper>
+      </Container>
+    </Box>
   );
 }
