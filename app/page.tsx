@@ -1,21 +1,24 @@
-'use client'
+'use client';
 import { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { Edit, Trash2 } from "lucide-react";
-import { toast } from 'react-hot-toast';
-
-
-
+import { toast, Toaster } from "react-hot-toast";
 
 type FormData = {
   name: string;
   email: string;
+  age: number | ""; // allow number or empty string
 };
 
 export default function Home() {
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>();
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormData>({
+    defaultValues: { name: "", email: "", age: "" },
+  });
+
   const [data, setData] = useState<FormData[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const liveAge = watch("age", ""); // ✅ track from start
 
   // ✅ Handle form submission
   const onSubmit: SubmitHandler<FormData> = (formData) => {
@@ -23,12 +26,12 @@ export default function Home() {
       const updatedData = [...data];
       updatedData[editingIndex] = formData;
       setData(updatedData);
-      reset({ name: "", email: "" });
+      reset({ name: "", email: "", age: "" });
       setEditingIndex(null);
       toast.success("Record updated successfully!");
     } else {
       setData([...data, formData]);
-      reset({ name: "", email: "" });
+      reset({ name: "", email: "", age: "" });
       toast.success("New record added!");
     }
   };
@@ -45,13 +48,16 @@ export default function Home() {
     setData(updatedData);
     toast.success("Record deleted successfully!");
     if (editingIndex === index) {
-      reset({ name: "", email: "" });
+      reset({ name: "", email: "", age: "" });
       setEditingIndex(null);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex items-center justify-center px-4 py-10">
+      {/* ✅ Toast notifications */}
+      <Toaster position="top-center" reverseOrder={false} />
+
       <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 max-w-3xl w-full">
         <h1 className="text-3xl font-bold text-center text-blue-700 mb-8 tracking-wide">
           React Hook Form with Table
@@ -89,12 +95,37 @@ export default function Home() {
             )}
           </div>
 
+          {/* ✅ AGE INPUT with live tracking */}
+          <div>
+            <label className="block mb-1 text-gray-700 font-bold">Age:</label>
+            <input
+              type="number"
+              {...register("age", {
+                valueAsNumber: true,
+                required: "Age is required",
+                min: { value: 18, message: "Age must be at least 18" },
+                max: { value: 50, message: "Age must be less than 50" },
+              })}
+              placeholder="Enter your age"
+              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-black"
+            />
+
+            {/* 👇 Error or Live age */}
+            <p className="text-blue-600 font-semibold mt-2">
+              {errors.age ? (
+                <span className="text-red-500 text-sm">{errors.age.message}</span>
+              ) : liveAge ? (
+                <span className="text-blue-600 text-sm">Current Age: {liveAge}</span>
+              ) : null}
+            </p>
+          </div>
+
           <div className="md:col-span-2 flex justify-center">
             <button
               type="submit"
               className={`w-40 text-white cursor-pointer font-semibold px-6 py-2 rounded-lg transition-all duration-300 shadow-md ${
                 editingIndex !== null
-                  ? "bg-blue-500 hover:bg-blue-600"
+                  ? "bg-yellow-500 hover:bg-yellow-600"
                   : "bg-blue-500 hover:bg-blue-600"
               }`}
             >
@@ -111,29 +142,28 @@ export default function Home() {
                 <tr>
                   <th className="px-6 py-3 border-r text-black">Name</th>
                   <th className="text-black px-6 py-3 border-r">Email</th>
+                  <th className="text-black px-6 py-3 border-r">Age</th>
                   <th className="px-6 py-3 text-black">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white">
                 {data.map((item, index) => (
-                  <tr
-                    key={index}
-                    className="border-t hover:bg-blue-50 transition-all"
-                  >
+                  <tr key={index} className="border-t hover:bg-blue-50 transition-all">
                     <td className="px-6 py-3 text-black">{item.name}</td>
                     <td className="px-6 py-3 text-black">{item.email}</td>
+                    <td className="px-6 py-3 text-black">{item.age}</td>
                     <td className="px-6 py-3 space-x-2">
                       <button
                         onClick={() => handleEdit(index)}
-                        className=" text-black font-semibold px-3 py-1 rounded-lg hover:bg-yellow-500 transition-all cursor-pointer"
+                        className="text-black font-semibold px-3 py-1 rounded-lg hover:bg-yellow-200 transition-all cursor-pointer"
                       >
-                       <Edit size={20} color="blue"/>
+                        <Edit size={20} color="blue" />
                       </button>
                       <button
                         onClick={() => handleDelete(index)}
-                        className=" text-white font-semibold px-3 py-1 rounded-lg hover:bg-red-600 transition-all cursor-pointer"
+                        className="text-white font-semibold px-3 py-1 rounded-lg hover:bg-red-200 transition-all cursor-pointer"
                       >
-                        <Trash2 size={20} color="red"/>
+                        <Trash2 size={20} color="red" />
                       </button>
                     </td>
                   </tr>
