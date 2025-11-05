@@ -1,28 +1,53 @@
-'use client';
+'use client'
 import { useState } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm, SubmitHandler, useWatch, Control, FieldErrors } from "react-hook-form";
 import { Edit, Trash2 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
-import Swal from 'sweetalert2';
-
 
 type FormData = {
   name: string;
   email: string;
-  age: number | ""; // allow number or empty string
+  age: number | "";
 };
 
+/** Child component: watches the age field using useWatch and shows a custom message when validation fails.
+ *  We pass control and errors from parent so this child can read live value and errors.
+ */
+function AgeWatcher({ control, errors }: { control: Control<FormData>; errors: FieldErrors<FormData> }) {
+  // useWatch will give us the live value of "age"
+  const age = useWatch({ control, name: "age", defaultValue: "" });
+
+  // If there's an error for age, build a friendly message including the entered value
+  if (errors.age) {
+    // errors.age.message already has e.g. "Age must be at least 18"
+    const baseMessage = (errors.age as any).message || "Invalid age";
+    // show entered value only when it's defined and not empty
+    const entered = age === "" || age === undefined ? "no value" : String(age);
+    // If required error, don't append "but you entered ..." unless a value exists
+    if ((errors.age as any).type === "required") {
+      return <span className="text-red-500 text-sm mt-1">{baseMessage}</span>;
+    }
+    return (
+      <span className="text-red-500 text-sm mt-1">
+        {baseMessage} {entered !== "no value" ? `but you entered ${entered}` : ""}
+      </span>
+    );
+  }
+
+  // If no error, we DON'T show the live age on the UI (per your earlier request).
+  // But the age is still being tracked by useWatch — so this component silently watches it.
+  return null;
+}
+
 export default function Home() {
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormData>({
     defaultValues: { name: "", email: "", age: "" },
   });
 
   const [data, setData] = useState<FormData[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  const liveAge = watch("age", ""); // ✅ track from start
-
-  // ✅ Handle form submission
+  // Handle submit (add or update)
   const onSubmit: SubmitHandler<FormData> = (formData) => {
     if (editingIndex !== null) {
       const updatedData = [...data];
@@ -44,28 +69,20 @@ export default function Home() {
     setEditingIndex(index);
     toast("You can now edit the selected record.", { icon: "✏️" });
   };
-const handleDelete = (index: number) => {
-  Swal.fire({
-    title: "Are you sure?",
-    text: "This record will be deleted permanently!",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
-    confirmButtonText: "Yes, delete it!"
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const updatedData = data.filter((_, i) => i !== index);
-      setData(updatedData);
 
-      Swal.fire("Deleted!", "Your record has been deleted.", "success");
+  const handleDelete = (index: number) => {
+    const updatedData = data.filter((_, i) => i !== index);
+    setData(updatedData);
+    toast.success("Record deleted successfully!");
+    if (editingIndex === index) {
+      reset({ name: "", email: "", age: "" });
+      setEditingIndex(null);
     }
-  });
-};
+  };
 
+  // Note: We don't render the live age. The AgeWatcher watches it and only shows errors.
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex items-center justify-center px-4 py-10">
-      {/* ✅ Toast notifications */}
       <Toaster position="top-center" reverseOrder={false} />
 
       <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 max-w-3xl w-full">
@@ -73,11 +90,7 @@ const handleDelete = (index: number) => {
           React Hook Form with Table
         </h1>
 
-        {/* ✅ FORM */}
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6"
-        >
+        <form onSubmit={handleSubmit(onSubmit)} className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col">
             <label className="mb-2 font-semibold text-gray-700">Name</label>
             <input
@@ -85,9 +98,7 @@ const handleDelete = (index: number) => {
               placeholder="Enter full name"
               className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-black"
             />
-            {errors.name && (
-              <span className="text-red-500 text-sm mt-1">{errors.name.message}</span>
-            )}
+            {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name.message}</span>}
           </div>
 
           <div className="flex flex-col">
@@ -98,15 +109,13 @@ const handleDelete = (index: number) => {
                 pattern: { value: /^\S+@\S+$/i, message: "Invalid email" },
               })}
               placeholder="example@mail.com"
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2  focus:ring-blue-400 transition-all text-black"
+              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-black"
             />
-            {errors.email && (
-              <span className="text-red-500 text-sm mt-1">{errors.email.message}</span>
-            )}
+            {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email.message}</span>}
           </div>
 
-          {/* ✅ AGE INPUT with live tracking */}
-          <div>
+          {/* Age input + AgeWatcher (child) */}
+          <div className="flex flex-col">
             <label className="block mb-1 text-gray-700 font-bold">Age:</label>
             <input
               type="number"
@@ -120,23 +129,15 @@ const handleDelete = (index: number) => {
               className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all text-black"
             />
 
-            {/* 👇 Error or Live age */}
-            <p className="text-blue-600 font-semibold mt-2">
-              {errors.age ? (
-                <span className="text-red-500 text-sm">{errors.age.message}</span>
-              ) : liveAge ? (
-                <span className="text-blue-600 text-sm">Current Age: {liveAge}</span>
-              ) : null}
-            </p>
+            {/* AgeWatcher shows the detailed error message including the entered value */}
+            <AgeWatcher control={control} errors={errors} />
           </div>
 
           <div className="md:col-span-2 flex justify-center">
             <button
               type="submit"
               className={`w-40 text-white cursor-pointer font-semibold px-6 py-2 rounded-lg transition-all duration-300 shadow-md ${
-                editingIndex !== null
-                  ? "bg-blue-500 hover:bg-blue-600"
-                  : "bg-blue-500 hover:bg-blue-600"
+                editingIndex !== null ? "bg-yellow-500 hover:bg-yellow-600" : "bg-blue-500 hover:bg-blue-600"
               }`}
             >
               {editingIndex !== null ? "Update" : "Add"}
@@ -144,38 +145,31 @@ const handleDelete = (index: number) => {
           </div>
         </form>
 
-        {/* ✅ TABLE */}
+        {/* TABLE */}
         {data.length > 0 ? (
           <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
             <table className="min-w-full text-center">
               <thead className="bg-blue-600 text-white uppercase text-sm tracking-wider">
                 <tr>
-                  <th className="px-6 py-3 border-r text-white">Name</th>
-                  <th className="text-white px-6 py-3 border-r">Email</th>
-                  <th className="text-white px-6 py-3 border-r">Age</th>
-                  <th className="px-6 py-3 text-white">Actions</th>
+                  <th className="px-6 py-3 border-r text-black">Name</th>
+                  <th className="text-black px-6 py-3 border-r">Email</th>
+                  <th className="px-6 py-3 text-black border-r">Age</th>
+                  <th className="px-6 py-3 text-black">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white">
                 {data.map((item, index) => (
-                  <tr key={index} className="border-t  transition-all">
+                  <tr key={index} className="border-t hover:bg-blue-50 transition-all">
                     <td className="px-6 py-3 text-black">{item.name}</td>
                     <td className="px-6 py-3 text-black">{item.email}</td>
                     <td className="px-6 py-3 text-black">{item.age}</td>
                     <td className="px-6 py-3 space-x-2">
-                      <div className="flex justify-center gap-4">
-                      <button
-                        onClick={() => handleEdit(index)}
-                        className="text-black font-semibold px-3 py-1 rounded-lg hover:bg-blue-200 transition-all cursor-pointer"
-                      >
+                      <button onClick={() => handleEdit(index)} className="text-black font-semibold px-3 py-1 rounded-lg hover:bg-yellow-200 transition-all cursor-pointer">
                         <Edit size={20} color="blue" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(index)}
-                        className="text-white font-semibold px-3 py-1 rounded-lg hover:bg-red-200 transition-all cursor-pointer"
-                      >
+                      <button onClick={() => handleDelete(index)} className="text-white font-semibold px-3 py-1 rounded-lg hover:bg-red-200 transition-all cursor-pointer">
                         <Trash2 size={20} color="red" />
-                      </button></div>
+                      </button>
                     </td>
                   </tr>
                 ))}
