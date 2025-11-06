@@ -23,6 +23,7 @@ import {
 } from "@mui/material";
 import { Edit, Trash2 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
+import Swal from "sweetalert2";
 
 type FormData = {
   name: string;
@@ -91,6 +92,22 @@ export default function Home() {
   };
 
   const handleDelete = (index: number) => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        deleteRecord(index);
+      }
+    });
+  };
+
+  const deleteRecord = (index: number) => {
     const updated = data.filter((_, i) => i !== index);
     setData(updated);
     toast.success("Record deleted successfully!");
